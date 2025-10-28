@@ -3,3 +3,5 @@ uvicorn[standard]==0.32.0
 firebase-admin==6.5.0
 python-dotenv==1.0.1
 pydantic==2.10.5
+packaging>=24.0
+google-cloud-firestore>=2.21.0
