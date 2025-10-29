@@ -41,7 +41,20 @@ app.add_middleware(
 try:
     # Check if Firebase app is already initialized
     if not firebase_admin._apps:
-        cred = credentials.Certificate("serviceAccountKey.json")
+        # Try to load from environment variable first (for production)
+        import json
+        creds_json = os.getenv('FIREBASE_CREDENTIALS_JSON')
+        
+        if creds_json:
+            # Production: Load from environment variable
+            cred_dict = json.loads(creds_json)
+            cred = credentials.Certificate(cred_dict)
+            logger.info("Loading Firebase credentials from environment variable")
+        else:
+            # Development: Load from file
+            cred = credentials.Certificate("serviceAccountKey.json")
+            logger.info("Loading Firebase credentials from file")
+        
         firebase_admin.initialize_app(cred)
     
     # Initialize Firestore client
