@@ -285,16 +285,14 @@ async def get_products_by_vendor(
     try:
         # Build query for vendor products
         products_ref = db.collection('products')
-        direction = firestore.Query.ASCENDING if order == "asc" else firestore.Query.DESCENDING
         
-        query = products_ref.where('vendorId', '==', vendor_id)\
-                           .order_by(sort_by, direction=direction)\
-                           .limit(limit)
+        # Filter by vendorId only (no sorting to avoid index requirement)
+        query = products_ref.where('vendorId', '==', vendor_id).limit(limit)
         
         # Execute query
         docs = query.stream()
         
-        # Format products data
+        # Format products data and sort in memory
         products = []
         for doc in docs:
             try:
@@ -303,6 +301,15 @@ async def get_products_by_vendor(
             except Exception as e:
                 logger.warning(f"Failed to format product {doc.id}: {str(e)}")
                 continue
+        
+        # Sort in memory based on the requested field
+        reverse = (order == "desc")
+        if sort_by == "price":
+            products.sort(key=lambda x: x.get('price', 0), reverse=reverse)
+        elif sort_by == "name":
+            products.sort(key=lambda x: x.get('name', ''), reverse=reverse)
+        else:  # createdAt
+            products.sort(key=lambda x: x.get('createdAt', ''), reverse=reverse)
         
         logger.info(f"Retrieved {len(products)} products for vendor: {vendor_id}")
         return APIResponse(
